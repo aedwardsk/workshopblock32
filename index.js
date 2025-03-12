@@ -31,9 +31,9 @@ app.post("/api/flavors", async (req, res) => {
   try {
     console.log(req.body);
     const SQL = /*sql*/ `
-    INSERT INTO flavors (txt, ranking) VALUES ($1, $2) RETURNING *;
+    INSERT INTO flavors (name, txt) VALUES ($1, $2) RETURNING *;
     `;
-    const response = await client.query(SQL, [req.body.txt, req.body.ranking]);
+    const response = await client.query(SQL, [req.body.name, req.body.txt]);
     res.send(response.rows[0]);
   } catch (error) {
     res.status(500).send(error);
@@ -41,7 +41,24 @@ app.post("/api/flavors", async (req, res) => {
 });
 
 app.put("/api/flavors/:id", async (req, res, next) => {
-  res.send({ "this is were the flavors will be": "flavors" });
+  try {
+    const { id } = req.params;
+    const { name, txt } = req.body;
+    const SQL = /*sql*/ `
+  UPDATE flavors
+  SET name = $1, txt = $2, is_favorite = $3, updated_at = now()
+  WHERE id = $4
+ RETURNING *;
+  `;
+    const response = await client.query(SQL, [name, txt, is_favorite, id]);
+    if (response.rows.length === 0) {
+      res.status(404).send({ error: "Flavor not found" });
+    } else {
+      res.send(response.rows[0]);
+    }
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.delete("/api/flavors/:id", async (req, res, next) => {
@@ -60,7 +77,7 @@ async function init() {
   CREATE TABLE flavors(
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    is_favorite BOOLEAN 
+    is_favorite BOOLEAN, 
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now(),
     txt VARCHAR(255)
@@ -71,7 +88,7 @@ async function init() {
   ('Strawberry', 'Ingredients: Milk, Sugar, Cream, Corn Syrup, Natural Flavor, Strawberry Puree', true),
   ('Mint Chocolate Chip', 'Ingredients: Milk, Sugar, Cream, Corn Syrup, Natural Flavor, Chocolate Chips, Mint Extract', true),
   ('Rocky Road', 'Ingredients: Milk, Sugar, Cream, Corn Syrup, Natural Flavor, Marshmallows, Almonds, Chocolate Chips', false),
-  ('Butter Pecan', 'Ingredients: Milk, Sugar, Cream, Corn Syrup, Natural Flavor, Pecans', false),
+  ('Butter Pecan', 'Ingredients: Milk, Sugar, Cream, Corn Syrup, Natural Flavor, Pecans', false);
   `;
   await client.query(SQL);
   //start server
