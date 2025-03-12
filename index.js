@@ -62,7 +62,20 @@ app.put("/api/flavors/:id", async (req, res, next) => {
 });
 
 app.delete("/api/flavors/:id", async (req, res, next) => {
-  res.send({ "this is were the flavors will be": "flavors" });
+  try {
+    const SQL = /*sql*/ `
+      DELETE from flavors
+      WHERE id = $1
+    `;
+    const response = await client.query(SQL, [req.params.id]);
+    if (response.rowCount === 0) {
+      res.status(404).send({ error: "Flavor not found" });
+    } else {
+      res.sendStatus(204);
+    }
+  } catch (ex) {
+    next(ex);
+  }
 });
 
 //init function - this will handle all three functions.
